@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>最简单的例子</title>
+  <script src="https://unpkg.com/cornerstone-core@2.6.1/dist/cornerstone.js"></script>
+  <script src="https://unpkg.com/cornerstone-tools@6.0.8/dist/cornerstoneTools.js"></script>
+  <script
+    src="https://unpkg.com/cornerstone-wado-image-loader@4.1.5/dist/cornerstoneWADOImageLoader.bundle.min.js"></script>
+  <script src="https://unpkg.com/dicom-parser@1.8.13/dist/dicomParser.js"></script>
+  <script src="https://unpkg.com/cornerstone-math@0.1.10/dist/cornerstoneMath.min.js"></script>
+  <style>
+    .container {
+      width: 100%;
+      height: 100%;
+      user-select: none;
+    }
+
+    .container #enabledElement {
+      width: 500px;
+      height: 500px;
+      margin-bottom: 10px;
+    }
+
+    .container #operation button {
+      margin-right: 5px;
+      font-size: 16px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div id="enabledElement"></div>
+    <div id="operation">
+      <button data-name="Wwwc">Wwwc</button>
+      <button data-name="Zoom">Zoom</button>
+      <button data-name="Pan">Pan</button>
+      <button data-name="Rotate">Rotate</button>
+    </div>
+  </div>
+  <script>
+    cornerstoneTools.init({
+      touchEnabled: false,
+      showSVGCursors: true
+    });
+    cornerstoneTools.external.cornerstone = cornerstone;
+    cornerstoneTools.external.cornerstoneMath = cornerstoneMath;
+
+    cornerstoneWADOImageLoader.webWorkerManager.initialize({
+      maxWebWorkers: navigator.hardwareConcurrency || 1,
+      startWebWorkersOnDemand: true,
+      taskConfiguration: {
+        decodeTask: {
+          initializeCodecsOnStartup: false
+        }
+      },
+      webWorkerTaskPaths: [
+        "https://unpkg.com/cornerstone-wado-image-loader@4.1.5/dist/610.bundle.min.worker.js",
+      ]
+    });
+    cornerstoneWADOImageLoader.external.cornerstone = cornerstone;
+    cornerstoneWADOImageLoader.external.dicomParser = dicomParser;
+
+    const element = document.getElementById("enabledElement");
+
+    cornerstone.enable(element);
+
+    const imageId =
+      "dicomweb:https://tools.cornerstonejs.org/examples/assets/dicom/bellona/chest_lung/1.dcm";
+    cornerstone.loadImage(imageId).then(function (image) {
+      cornerstone.displayImage(element, image);
+      toolInit();
+      setToolActive("Wwwc");
+    });
+
+    function toolInit() {
+      const tools = ["Wwwc", "Zoom", "Pan", "Rotate"];
+
+      tools.forEach(toolName => {
+        addTool(toolName);
+      })
+    }
+
+    function addTool(toolName) {
+      const ApiTool = cornerstoneTools[`${toolName}Tool`];
+
+      cornerstoneTools.addTool(ApiTool);
+    }
+
+    function setToolActive(toolName, mouseButtonMask) {
+      const options = {
+        mouseButtonMask: mouseButtonMask || 1
+      };
+
+      cornerstoneTools.setToolActive(toolName, options);
+    }
+
+    function addEventListener() {
+      const element = document.getElementById("operation");
+
+      for (let i = 0; i < element.children.length; i++) {
+        const toolName = element.children[i].dataset.name;
+
+        element.children[i].addEventListener("click", () => setToolActive(toolName));
+      }
+    }
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>最简单的例子</title>
+  <script src="https://unpkg.com/cornerstone-core@2.6.1/dist/cornerstone.js"></script>
+  <script
+    src="https://unpkg.com/cornerstone-wado-image-loader@4.1.5/dist/cornerstoneWADOImageLoader.bundle.min.js"></script>
+  <script src="https://unpkg.com/dicom-parser@1.8.13/dist/dicomParser.js"></script>
+  <script src="https://unpkg.com/cornerstone-math@0.1.10/dist/cornerstoneMath.min.js"></script>
+  <script src="https://unpkg.com/jquery@3.6.3/dist/jquery.js"></script>
+  <style>
+    html,
+    body,
+    #app {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
+
+    #app {
+      padding: 10px;
+      box-sizing: border-box;
+    }
+
+    .container {
+      display: flex;
+      width: 800px;
+      height: 600px;
+      border: 1px solid #ccc;
+      margin-bottom: 10px;
+    }
+
+    .enabledElement {
+      width: 600px;
+      min-width: 256px;
+      max-width: 800px;
+      height: 400px;
+      min-height: 256px;
+      max-height: 600px;
+      border: 2px solid rgb(0, 164, 217);
+      resize: both;
+      overflow: auto;
+    }
+
+    button {
+      margin-right: 5px;
+      margin-bottom: 5px;
+      font-size: 16px;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app">
+    <div class="container">
+      <div class="enabledElement"></div>
+    </div>
+    <div class="operation">
+      <button data-type="hFlip">水平镜像</button>
+      <button data-type="vFlip">垂直镜像</button>
+      <button data-type="invert">反色</button>
+      <button data-type="interpolation">差值</button>
+      <button data-type="zoomIn">缩小</button>
+      <button data-type="zoomOut">放大</button>
+      <button data-type="originalViewport">图像原始大小</button>
+      <button data-type="rRotate">向右旋转90°</button>
+      <button data-type="lRotate">向左旋转90°</button>
+      <button data-type="resize">适应</button>
+      <button data-type="reset">重置</button>
+    </div>
+  </div>
+  <script>
+    cornerstoneWADOImageLoader.webWorkerManager.initialize({
+      maxWebWorkers: navigator.hardwareConcurrency || 1,
+      startWebWorkersOnDemand: true,
+      taskConfiguration: {
+        decodeTask: {
+          initializeCodecsOnStartup: false
+        }
+      },
+      webWorkerTaskPaths: [
+        "https://unpkg.com/cornerstone-wado-image-loader@4.1.5/dist/610.bundle.min.worker.js"
+      ]
+    });
+    cornerstoneWADOImageLoader.external.cornerstone = cornerstone;
+    cornerstoneWADOImageLoader.external.dicomParser = dicomParser;
+
+    const element = $(".enabledElement")[0];
+    const imageId =
+      "wadouri:http://182.92.128.9/file-system-online/dicom/CT/chest_lung/2/1.dcm";
+
+    cornerstone.enable(element);
+
+    cornerstone.loadImage(imageId).then((image) => {
+      cornerstone.displayImage(element, image);
+    });
+
+    $(window).resize(() => {
+      cornerstone.resize(element);
+    })
+
+    $(".operation")
+      .children()
+      .each((index, item) => {
+        const type = $(item).data("type");
+
+        $(item).click(() => {
+          const viewport = cornerstone.getViewport(element);
+
+          switch (type) {
+            case "hFlip":
+              viewport.hflip = !viewport.hflip;
+              cornerstone.setViewport(element, viewport);
+              break;
+            case "vFlip":
+              viewport.vflip = !viewport.vflip;
+              cornerstone.setViewport(element, viewport);
+              break;
+            case "invert":
+              viewport.invert = !viewport.invert;
+              cornerstone.setViewport(element, viewport);
+              break;
+            case "interpolation":
+              viewport.pixelReplication = !viewport.pixelReplication;
+              cornerstone.setViewport(element, viewport);
+              break;
+            case "zoomIn":
+              viewport.scale -= 0.25;
+              cornerstone.setViewport(element, viewport);
+              break;
+            case "zoomOut":
+              viewport.scale += 0.25;
+              cornerstone.setViewport(element, viewport);
+              break;
+            case "originalViewport":
+              viewport.scale = 1;
+              cornerstone.setViewport(element, viewport);
+              break;
+            case "rRotate":
+              viewport.rotation += 90;
+              cornerstone.setViewport(element, viewport);
+              break;
+            case "lRotate":
+              viewport.rotation -= 90;
+              cornerstone.setViewport(element, viewport);
+              break;
+            case "resize":
+              cornerstone.resize(element);
+              break;
+            case "reset":
+              cornerstone.reset(element);
+              break;
+          }
+        });
+      });
+  </script>
+</body>
+
+</html>

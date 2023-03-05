@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>最简单的例子</title>
+  <script src="https://unpkg.com/cornerstone-core@2.6.1/dist/cornerstone.js"></script>
+  <script src="https://unpkg.com/cornerstone-tools@6.0.8/dist/cornerstoneTools.js"></script>
+  <script
+    src="https://unpkg.com/cornerstone-wado-image-loader@4.1.5/dist/cornerstoneWADOImageLoader.bundle.min.js"></script>
+  <script src="https://unpkg.com/dicom-parser@1.8.13/dist/dicomParser.js"></script>
+  <script src="https://unpkg.com/cornerstone-math@0.1.10/dist/cornerstoneMath.min.js"></script>
+  <script src="https://unpkg.com/jquery@3.6.3/dist/jquery.js"></script>
+  <style>
+    .container {
+      width: 100%;
+      height: 100%;
+      user-select: none;
+    }
+
+    .container #enabledElement {
+      width: 600px;
+      height: 500px;
+      margin-bottom: 10px;
+    }
+
+    .container #operation {
+      margin-bottom: 10px;
+    }
+
+    button {
+      margin-right: 5px;
+      font-size: 16px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div id="enabledElement"></div>
+    <div id="operation"></div>
+  </div>
+  <script>
+    cornerstoneTools.init({
+      touchEnabled: false,
+      showSVGCursors: true
+    });
+    cornerstoneTools.external.cornerstone = cornerstone;
+    cornerstoneTools.external.cornerstoneMath = cornerstoneMath;
+
+    cornerstoneWADOImageLoader.webWorkerManager.initialize({
+      maxWebWorkers: navigator.hardwareConcurrency || 1,
+      startWebWorkersOnDemand: true,
+      taskConfiguration: {
+        decodeTask: {
+          initializeCodecsOnStartup: false
+        }
+      },
+      webWorkerTaskPaths: [
+        "https://unpkg.com/cornerstone-wado-image-loader@4.1.5/dist/610.bundle.min.worker.js"
+      ]
+    });
+    cornerstoneWADOImageLoader.external.cornerstone = cornerstone;
+    cornerstoneWADOImageLoader.external.dicomParser = dicomParser;
+
+    const element = $("#enabledElement")[0];
+    const tools = [
+      {
+        name: "DragProbe",
+        label: "拖动探针",
+        props: {
+          configuration: {
+            shadow: true,
+            shadowColor: "pink",
+            shadowBlur: 20,
+            shadowOffsetX: 10,
+            shadowOffsetY: 10
+          }
+        }
+      },
+      {
+        name: "Eraser",
+        label: "橡皮擦",
+        props: {
+          configuration: {}
+        }
+      },
+      {
+        name: "Overlay",
+        label: "覆盖层",
+        props: {
+          configuration: {}
+        }
+      },
+      {
+        name: "OrientationMarkers",
+        label: "方向标记",
+        props: {
+          configuration: {
+            drawAllMarkers: true
+          }
+        }
+      },
+      {
+        name: "Pan",
+        label: "平移",
+        props: {
+          configuration: {}
+        }
+      },
+      {
+        name: "Rotate",
+        label: "旋转",
+        props: {
+          configuration: {
+            roundAngles: false,
+            flipHorizontal: false,
+            flipVertical: false,
+            rotateScale: 1
+          }
+        }
+      },
+      {
+        name: "ScaleOverlay",
+        label: "比例尺",
+        props: {
+          configuration: {
+            minorTickLength: 12.5,
+            majorTickLength: 25,
+            shadow: true,
+            shadowColor: "red",
+            shadowBlur: 20,
+            shadowOffsetX: 10,
+            shadowOffsetY: 10
+          }
+        }
+      },
+      {
+        name: "WwwcRegion",
+        label: "框选调窗",
+        props: {
+          configuration: {
+            minWindowWidth: 10
+          }
+        }
+      },
+      {
+        name: "Wwwc",
+        label: "调窗",
+        props: {
+          configuration: {
+            orientation: 0
+          }
+        }
+      },
+      {
+        name: "ZoomMouseWheel",
+        label: "鼠标滚轮缩放",
+        props: {
+          configuration: {
+            minScale: 0.25,
+            maxScale: 20.0,
+            invert: true
+          }
+        }
+      },
+      {
+        name: "Zoom",
+        label: "缩放",
+        props: {
+          configuration: {
+            invert: false,
+            preventZoomOutsideImage: false,
+            minScale: 0.25,
+            maxScale: 20.0
+          }
+        }
+      }
+    ];
+    let activeToolName = "";
+
+    cornerstone.enable(element);
+
+    const imageId =
+      "dicomweb:https://tools.cornerstonejs.org/examples/assets/dicom/bellona/chest_lung/1.dcm";
+    cornerstone.loadImage(imageId).then(function (image) {
+      cornerstone.displayImage(element, image);
+      toolInit();
+      setToolActive(tools[0].name);
+    });
+
+    function toolInit() {
+      generateButtons();
+      addEvent();
+
+      tools.forEach((tool) => {
+        addTool(tool.name, tool.props);
+      });
+    }
+
+    function addTool(toolName, props) {
+      const ApiTool = cornerstoneTools[`${toolName}Tool`];
+
+      cornerstoneTools.addTool(ApiTool, props);
+    }
+
+    function setToolActive(toolName, mouseButtonMask) {
+      const options = {
+        mouseButtonMask: mouseButtonMask || 1
+      };
+
+      cornerstoneTools.setToolActive(toolName, options);
+    }
+
+    function generateButtons() {
+      for (let i = 0; i < tools.length; i++) {
+        const button = document.createElement("button");
+
+        button.dataset.name = tools[i].name;
+        button.innerText = tools[i].label;
+
+        $("#operation").append(button);
+      }
+    }
+
+    function addEvent() {
+      $("#operation")
+        .children()
+        .each((index, item) => {
+          const toolName = item.dataset.name;
+
+          $(item).click(() => {
+            activeToolName = toolName;
+            setToolActive(toolName);
+          });
+        });
+    }
+  </script>
+</body>
+
+</html>

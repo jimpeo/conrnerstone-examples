@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1, maximum-scale=1, minimal-ui" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <script src="https://unpkg.com/cornerstone-core@2.6.1/dist/cornerstone.js"></script>
+  <script src="https://unpkg.com/cornerstone-tools@6.0.8/dist/cornerstoneTools.js"></script>
+  <script
+    src="https://unpkg.com/cornerstone-wado-image-loader@4.1.5/dist/cornerstoneWADOImageLoader.bundle.min.js"></script>
+  <script src="https://unpkg.com/dicom-parser@1.8.13/dist/dicomParser.js"></script>
+  <script src="https://unpkg.com/cornerstone-math@0.1.10/dist/cornerstoneMath.min.js"></script>
+  <script src="https://unpkg.com/jquery@3.6.3/dist/jquery.js"></script>
+  <style>
+    html,
+    body,
+    #app {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    .container {
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      height: 60%;
+      padding-top: 60px;
+      font-family: "Avenir", Helvetica, Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    .firstElement,
+    .secondElement {
+      flex-basis: 320px;
+      min-width: 320px;
+      min-height: 320px;
+      flex-grow: 1;
+      border: 2px solid rgb(0, 164, 217);
+    }
+
+    .operation {
+      width: 100%;
+      margin-top: 10px;
+      padding: 0 5px;
+      box-sizing: border-box;
+    }
+
+    .singleChoice {
+      display: flex;
+      flex-wrap: wrap;
+      margin-bottom: 5px;
+      padding: 0;
+      list-style: none;
+    }
+
+    .choiceItem {
+      width: 30%;
+      margin-bottom: 10px;
+    }
+
+    .choiceItem label {
+      display: inline-block;
+      width: 120px;
+      text-align: justify;
+      text-justify: distribute-all-lines;
+      text-align-last: justify;
+    }
+
+    .buttonList button {
+      font-size: 16px;
+    }
+
+    .buttonList button.active {
+      background-color: rgb(220, 220, 220);
+      border: 2px solid black;
+      border-radius: 2px;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app">
+    <div class="container">
+      <div class="firstElement" oncontextmenu="return false"></div>
+      <div class="secondElement" oncontextmenu="return false"></div>
+    </div>
+    <div class="operation">
+      <ul class="singleChoice">
+        <li class="choiceItem">
+          <label for="panZoomSynchronizer">平移缩放同步器</label>
+          <input type="radio" name="panZoomSynchronizer" value="true" checked />开启
+          <input type="radio" name="panZoomSynchronizer" value="false" />关闭
+        </li>
+        <li class="choiceItem">
+          <label for="wwwcSynchronizer">窗宽窗位同步器</label>
+          <input type="radio" name="wwwcSynchronizer" value="true" />开启
+          <input type="radio" name="wwwcSynchronizer" value="false" checked />关闭
+        </li>
+        <li class="choiceItem">
+          <label for="updateSynchronizer">更新同步器</label>
+          <input type="radio" name="updateSynchronizer" value="true" />开启
+          <input type="radio" name="updateSynchronizer" value="false" checked />关闭
+        </li>
+        <li class="choiceItem">
+          <label for="stackScrollSynchronizer">堆栈同步器</label>
+          <input type="radio" name="stackScrollSynchronizer" value="true" />开启
+          <input type="radio" name="stackScrollSynchronizer" value="false" checked />关闭
+        </li>
+        <li class="choiceItem">
+          <label for="stackImageIndexSynchronizer">索引同步器</label>
+          <input type="radio" name="stackImageIndexSynchronizer" value="true" />开启
+          <input type="radio" name="stackImageIndexSynchronizer" value="false" checked />关闭
+        </li>
+        <li class="choiceItem">
+          <label for="stackImagePositionSynchronizer">图像位置同步器</label>
+          <input type="radio" name="stackImagePositionSynchronizer" value="true" />开启
+          <input type="radio" name="stackImagePositionSynchronizer" value="false" checked />关闭
+        </li>
+        <li class="choiceItem">
+          <!--  -->
+          <label for="stackImagePositionOffsetSynchronizer">位置偏移同步器</label>
+          <input type="radio" name="stackImagePositionOffsetSynchronizer" value="true" />开启
+          <input type="radio" name="stackImagePositionOffsetSynchronizer" value="false" checked />关闭
+        </li>
+      </ul>
+      <div class="buttonList">
+        <button class="active" data-name="Pan">平移</button>
+        <button data-name="Zoom">缩放</button>
+        <button data-name="Wwwc">调窗</button>
+        <button data-name="StackScroll">浏览</button>
+        <button data-name="restore">恢复</button>
+      </div>
+    </div>
+  </div>
+</body>
+
+<script>
+  cornerstoneTools.init({
+    touchEnabled: false,
+    showSVGCursors: true
+  });
+  cornerstoneTools.external.cornerstone = cornerstone;
+  cornerstoneTools.external.cornerstoneMath = cornerstoneMath;
+
+  cornerstoneWADOImageLoader.webWorkerManager.initialize({
+    maxWebWorkers: navigator.hardwareConcurrency || 1,
+    startWebWorkersOnDemand: true,
+    taskConfiguration: {
+      decodeTask: {
+        initializeCodecsOnStartup: false
+      }
+    },
+    webWorkerTaskPaths: [
+      "https://unpkg.com/cornerstone-wado-image-loader@4.1.5/dist/610.bundle.min.worker.js"
+    ]
+  });
+  cornerstoneWADOImageLoader.external.cornerstone = cornerstone;
+  cornerstoneWADOImageLoader.external.dicomParser = dicomParser;
+
+  const firstElement = $(".firstElement")[0];
+  const secondElement = $(".secondElement")[0];
+  const elements = [firstElement, secondElement];
+  const firstImageIds = [];
+  const secondImageIds = [];
+  const synchronizers = [];
+
+  for (let i = 1; i < 41; i++) {
+    firstImageIds.push(
+      "wadouri:http://182.92.128.9/file-system-online/dicom/CT/chest_lung/2/" +
+      i +
+      ".dcm"
+    );
+
+    secondImageIds.push(
+      "wadouri:http://182.92.128.9/file-system-online/dicom/CT/chest_lung/3/" +
+      i +
+      ".dcm"
+    );
+  }
+
+  const firstStack = {
+    currentImageIdIndex: 0,
+    imageIds: firstImageIds
+  };
+
+  const secondStack = {
+    currentImageIdIndex: 0,
+    imageIds: secondImageIds
+  };
+
+  synchronizers.panZoomSynchronizer = new cornerstoneTools.Synchronizer(
+    "cornerstoneimagerendered",
+    cornerstoneTools.panZoomSynchronizer
+  );
+
+  synchronizers.wwwcSynchronizer = new cornerstoneTools.Synchronizer(
+    "cornerstoneimagerendered",
+    cornerstoneTools.wwwcSynchronizer
+  );
+
+  synchronizers.updateSynchronizer = new cornerstoneTools.Synchronizer(
+    "cornerstonenewimage",
+    cornerstoneTools.updateImageSynchronizer
+  );
+
+  synchronizers.stackScrollSynchronizer = new cornerstoneTools.Synchronizer(
+    "cornerstonetoolsstackscroll",
+    cornerstoneTools.stackScrollSynchronizer
+  );
+
+  synchronizers.stackImageIndexSynchronizer =
+    new cornerstoneTools.Synchronizer(
+      "cornerstonetoolsstackscroll",
+      cornerstoneTools.stackImageIndexSynchronizer
+    );
+
+  synchronizers.stackImagePositionSynchronizer =
+    new cornerstoneTools.Synchronizer(
+      "cornerstonetoolsstackscroll",
+      cornerstoneTools.stackImagePositionSynchronizer
+    );
+
+  synchronizers.stackImagePositionOffsetSynchronizer =
+    new cornerstoneTools.Synchronizer(
+      "cornerstonetoolsstackscroll",
+      cornerstoneTools.stackImagePositionOffsetSynchronizer
+    );
+
+  elements.forEach((element) => {
+    cornerstone.enable(element);
+  });
+
+  firstImageIds.forEach((imageId, index) => {
+    if (index) {
+      cornerstone.loadImage(imageId);
+    }
+  });
+
+  secondImageIds.forEach((imageId, index) => {
+    if (index) {
+      cornerstone.loadImage(imageId);
+    }
+  });
+
+  const firstPromise = cornerstone
+    .loadImage(firstImageIds[0])
+    .then(function (image) {
+      cornerstone.displayImage(firstElement, image);
+      cornerstoneTools.addStackStateManager(firstElement, ["stack"]);
+      cornerstoneTools.addToolState(firstElement, "stack", firstStack);
+    });
+
+  const secondPromise = cornerstone
+    .loadImage(secondImageIds[0])
+    .then(function (image) {
+      cornerstone.displayImage(secondElement, image);
+      cornerstoneTools.addStackStateManager(secondElement, ["stack"]);
+      cornerstoneTools.addToolState(secondElement, "stack", secondStack);
+    });
+
+  function addTool(toolName, props) {
+    const ApiTool = cornerstoneTools[`${toolName}Tool`];
+
+    cornerstoneTools.addTool(ApiTool, props);
+  }
+
+  function setToolActive(toolName, mouseButtonMask) {
+    const options = {
+      mouseButtonMask: mouseButtonMask || 1
+    };
+
+    cornerstoneTools.setToolActive(toolName, options);
+  }
+
+  function addAllTools() {
+    const tools = [
+      "Wwwc",
+      "Pan",
+      "Zoom",
+      "StackScroll",
+      "StackScrollMouseWheel"
+    ];
+
+    tools.forEach((tool) => {
+      addTool(tool);
+    });
+  }
+
+  function addSynchronizer(synchronizerName) {
+    elements.forEach((element) => {
+      synchronizers[synchronizerName].add(element);
+    });
+  }
+
+  function removeSynchronizer(synchronizerName) {
+    synchronizers[synchronizerName].destroy();
+  }
+
+  function addEvent() {
+    $(".buttonList")
+      .children()
+      .each((index, item) => {
+        const toolName = item.dataset.name;
+
+        $(item).click(() => {
+          if (toolName === "restore") {
+            elements.forEach(element => {
+              cornerstone.reset(element);
+            });
+          } else {
+            setToolActive(toolName);
+            $(".buttonList").children().removeClass("active");
+            $(item).addClass("active");
+          }
+        });
+      });
+
+    $("input:radio").on("click", (e) => {
+      const switchResult = $(e.currentTarget).val() === "true" ? true : false;
+
+      if (switchResult) {
+        addSynchronizer(e.currentTarget.name);
+      } else {
+        removeSynchronizer(e.currentTarget.name);
+      }
+    });
+  }
+
+  Promise.all([firstPromise, secondPromise]).then(function () {
+    addSynchronizer("panZoomSynchronizer");
+    addAllTools();
+    addEvent();
+    setToolActive("Pan");
+    setToolActive("StackScrollMouseWheel", { mouseButtonMask: 4 });
+  });
+</script>
+
+</html>

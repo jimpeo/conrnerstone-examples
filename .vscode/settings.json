@@ -1,0 +1,11 @@
+{
+  "[html]": {
+    "editor.defaultFormatter": "vscode.html-language-features"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "vscode.typescript-language-features"
+  },
+  "javascript.format.semicolons": "insert",
+  "javascript.format.insertSpaceBeforeFunctionParenthesis": false,
+  "editor.formatOnSave": true
+}
