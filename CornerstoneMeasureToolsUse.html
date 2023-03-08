@@ -35,7 +35,7 @@
       font-size: 16px;
     }
 
-    #single_choice {
+    #singleChoice {
       margin-top: 10px;
     }
   </style>
@@ -51,7 +51,7 @@
       </button>
       <button id="clearAnnotation">清空全部标注</button>
     </div>
-    <div id="single_choice">
+    <div id="singleChoice">
       <label for="delete">图像区域外自动清除标注</label>
       <input type="radio" name="delete" value="true" checked />开启
       <input type="radio" name="delete" value="false" />关闭 &nbsp;&nbsp;
@@ -89,9 +89,11 @@
         name: "Angle",
         label: "角度",
         props: {
-          supportedInteractionTypes: ["Mouse"],
           configuration: {
-            drawHandlesOnHover: true
+            drawHandlesOnHover: false,
+            hideHandlesIfMoving: false,
+            renderDashed: true,
+            handleRadius: 10
           }
         }
       },
@@ -119,7 +121,13 @@
         name: "Bidirectional",
         label: "双向",
         props: {
-          configuration: {}
+          configuration: {
+            shadow: true,
+            shadowColor: "red",
+            shadowBlur: 10,
+            shadowOffsetX: 2,
+            shadowOffsetY: 2
+          }
         }
       },
       {
@@ -137,7 +145,7 @@
         label: "Cobb 角",
         props: {
           configuration: {
-            drawHandlesOnHover: true
+            drawHandlesOnHover: false
           }
         }
       },
@@ -147,7 +155,20 @@
         props: {
           configuration: {
             showMinMax: true,
-            showHounsfieldUnits: false
+            showHounsfieldUnits: true
+          }
+        }
+      },
+      {
+        name: "FreehandRoi",
+        label: "多边形",
+        props: {
+          configuration: {
+            spacing: 20,
+            activeHandleRadius: 10,
+            completeHandleRadius: 20,
+            alwaysShowHandles: true,
+            invalidColor: "pink"
           }
         }
       },
@@ -155,7 +176,7 @@
         name: "Length",
         label: "长度",
         props: {
-          cinfiguration: {
+          configuration: {
             digits: 4
           }
         }
@@ -164,7 +185,19 @@
         name: "Probe",
         label: "探针",
         props: {
-          configuration: {}
+          configuration: {
+            drawHandles: false
+          }
+        }
+      },
+      {
+        name: "RectangleRoi",
+        label: "矩形",
+        props: {
+          configuration: {
+            showMinMax: true,
+            showHounsfieldUnits: true
+          }
         }
       },
       {
@@ -195,7 +228,7 @@
     cornerstone.enable(element);
 
     const imageId =
-      "dicomweb:https://tools.cornerstonejs.org/examples/assets/dicom/bellona/chest_lung/1.dcm";
+      "wadouri:https://182.92.128.9/file-system-online/dicom/CT/chest_lung/3/1.dcm";
     cornerstone.loadImage(imageId).then(function (image) {
       cornerstone.displayImage(element, image);
       toolInit();
@@ -285,8 +318,6 @@
           options.preventHandleOutsideImage =
             $(e.currentTarget).val() === "true" ? true : false;
         }
-
-        console.log(options);
 
         tools.forEach((tool) => {
           cornerstoneTools.setToolOptionsForElement(
