@@ -92,7 +92,7 @@
 
     const element = $(".enabledElement")[0];
     const imageId =
-      "wadouri:http://182.92.128.9/file-system-online/dicom/CT/chest_lung/2/1.dcm";
+      "wadouri:https://182.92.128.9/file-system-online/dicom/CT/chest_lung/2/1.dcm";
 
     cornerstone.enable(element);
 
@@ -102,7 +102,7 @@
 
     $(window).resize(() => {
       cornerstone.resize(element);
-    })
+    });
 
     $(".operation")
       .children()

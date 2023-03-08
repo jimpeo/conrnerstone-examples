@@ -46,6 +46,26 @@
       margin-top: 10px;
       padding: 0 5px;
     }
+
+    .modality {
+      margin-bottom: 5px;
+    }
+
+    .modality select,
+    button {
+      font-size: 16px;
+    }
+
+    .modality select {
+      position: relative;
+      top: 1px;
+      width: 80px;
+      height: 26px;
+    }
+
+    .modality button {
+      vertical-align: middle;
+    }
   </style>
 </head>
 
@@ -56,9 +76,19 @@
       <div class="secondElement" oncontextmenu="return false"></div>
     </div>
     <div class="operation">
-      <label for="Overlay">覆盖层</label>
-      <input type="radio" name="Overlay" value="true" checked />开启
-      <input type="radio" name="Overlay" value="false" />关闭
+      <div class="modality">
+        <label for="modality">Modality</label>
+        <select name="modality">
+          <option>CT</option>
+          <option>MR</option>
+        </select>
+        <button class="switch">切换</button>
+      </div>
+      <div>
+        <label for="Overlay">覆盖层</label>
+        <input type="radio" name="Overlay" value="true" checked />开启
+        <input type="radio" name="Overlay" value="false" />关闭
+      </div>
     </div>
   </div>
 </body>
@@ -89,89 +119,112 @@
   const firstElement = $(".firstElement")[0];
   const secondElement = $(".secondElement")[0];
   const elements = [firstElement, secondElement];
-
-  const firstImageIds = [
-    "wadouri:http://182.92.128.9/file-system-online/dicom/CT/chest_lung/1/2.dcm",
-  ];
-  const secondImageIds = [];
-
-  for (let i = 1; i < 55; i++) {
-    secondImageIds.push(
-      "wadouri:http://182.92.128.9/file-system-online/dicom/CT/chest_lung/2/" +
-      i +
-      ".dcm"
-    );
-  }
-
+  let currentModality = "CT";
+  let firstImageIds = [],
+    secondImageIds = [];
   const firstStack = {
     currentImageIdIndex: 0,
     imageIds: firstImageIds,
   };
-
   const secondStack = {
     currentImageIdIndex: 0,
     imageIds: secondImageIds,
   };
+
+  function structureData() {
+    if (currentModality === "CT") {
+      firstImageIds = [
+        "wadouri:https://182.92.128.9/file-system-online/dicom/CT/chest_lung/1/2.dcm",
+      ];
+      secondImageIds = [];
+
+      for (let i = 1; i < 55; i++) {
+        secondImageIds.push(
+          "wadouri:https://182.92.128.9/file-system-online/dicom/CT/chest_lung/2/" +
+          i +
+          ".dcm"
+        );
+      }
+    } else {
+      firstImageIds = [];
+
+      for (let i = 1; i < 21; i++) {
+        firstImageIds.push(
+          "wadouri:https://182.92.128.9/file-system-online/dicom/MR/knee/1/" +
+          i +
+          ".dcm"
+        );
+      }
+
+      secondImageIds = [];
+
+      for (let i = 1; i < 21; i++) {
+        secondImageIds.push(
+          "wadouri:https://182.92.128.9/file-system-online/dicom/MR/knee/2/" +
+          i +
+          ".dcm"
+        );
+      }
+    }
+
+    firstStack.imageIds = firstImageIds;
+    secondStack.imageIds = secondImageIds;
+  }
 
   const synchronizer = new cornerstoneTools.Synchronizer(
     "cornerstonenewimage",
     cornerstoneTools.updateImageSynchronizer
   );
 
-  // image enable the dicomImage element and add canvas to it
   elements.forEach((element) => {
     cornerstone.enable(element);
   });
 
-  const firstPromise = cornerstone
-    .loadImage(firstImageIds[0])
-    .then(function (image) {
-      // display this image
-      cornerstone.displayImage(firstElement, image);
+  function loadImage() {
+    structureData();
 
-      // set the stack as tool state
-      cornerstoneTools.addStackStateManager(firstElement, [
-        "stack",
-        "referenceLines",
-      ]);
-      cornerstoneTools.addToolState(firstElement, "stack", firstStack);
-    });
+    cornerstone
+      .loadImage(firstImageIds[0])
+      .then(function (image) {
+        const defaultViewport = cornerstone.getDefaultViewportForImage(firstElement, image);
 
-  const secondPromise = cornerstone
-    .loadImage(secondImageIds[0])
-    .then(function (image) {
-      // display this image
-      cornerstone.displayImage(secondElement, image);
+        cornerstone.displayImage(firstElement, image, defaultViewport);
 
-      // set the stack as tool state
-      cornerstoneTools.addStackStateManager(secondElement, [
-        "stack",
-        "referenceLines",
-      ]);
-      cornerstoneTools.addToolState(secondElement, "stack", secondStack);
-    });
+        cornerstoneTools.addStackStateManager(firstElement, ["stack"]);
+        cornerstoneTools.addToolState(firstElement, "stack", firstStack);
+      });
 
-  function updateReferenceLines(activeElement) {
-    elements.forEach((element) => {
-      if (element === activeElement) {
-        synchronizer.add(element);
-      } else {
-        synchronizer.remove(element);
-      }
-      cornerstone.updateImage(element);
-    });
+    cornerstone
+      .loadImage(secondImageIds[0])
+      .then(function (image) {
+        const defaultViewport = cornerstone.getDefaultViewportForImage(secondElement, image);
+
+        cornerstone.displayImage(secondElement, image, defaultViewport);
+
+        cornerstoneTools.addStackStateManager(secondElement, ["stack"]);
+        cornerstoneTools.addToolState(secondElement, "stack", secondStack);
+      });
   }
 
   function addEvent() {
-    elements.forEach((element) => {
-      element.addEventListener("click", (e) => {
-        updateReferenceLines(e.target.parentElement);
-      });
+    $(".switch").click(() => {
+      if (currentModality === $("select").val()) return;
 
-      element.addEventListener("cornerstonetoolsstackscroll", (e) => {
-        updateReferenceLines(e.target);
-      });
+      currentModality = $("select").val();
+      loadImage();
     });
+
+    $(".container")
+      .children()
+      .each((index, item) => {
+        $(item).mousedown(() => {
+          cornerstoneTools.setToolEnabled("ReferenceLines", {
+            synchronizationContext: synchronizer,
+          });
+
+          cornerstoneTools.setToolDisabledForElement(item, "ReferenceLines");
+        });
+      });
 
     $("input:radio").on("click", (e) => {
       const switchResult = $(e.currentTarget).val() === "true" ? true : false;
@@ -184,17 +237,25 @@
     });
   }
 
-  Promise.all([firstPromise, secondPromise]).then(function () {
-    synchronizer.add(secondElement);
+  function init() {
+    loadImage();
+
+    elements.forEach((element) => {
+      synchronizer.add(element);
+    });
 
     addEvent();
 
     const ReferenceLinesTool = cornerstoneTools.ReferenceLinesTool;
 
     cornerstoneTools.addTool(ReferenceLinesTool);
-    cornerstoneTools.setToolEnabled("ReferenceLines", {
-      synchronizationContext: synchronizer,
-    });
+    cornerstoneTools.setToolEnabledForElement(
+      firstElement,
+      "ReferenceLines",
+      {
+        synchronizationContext: synchronizer,
+      }
+    );
 
     const OverlayTool = cornerstoneTools.OverlayTool;
 
@@ -204,10 +265,10 @@
     const StackScrollTool = cornerstoneTools.StackScrollTool;
 
     cornerstoneTools.addTool(StackScrollTool, {
-      mouseButtonMask: 1,
+      mouseButtonMask: 1
     });
     cornerstoneTools.setToolActive("StackScroll", {
-      mouseButtonMask: 1,
+      mouseButtonMask: 1
     });
 
     const StackScrollMouseWheelTool =
@@ -215,9 +276,11 @@
 
     cornerstoneTools.addTool(StackScrollMouseWheelTool);
     cornerstoneTools.setToolActive("StackScrollMouseWheel", {
-      mouseButtonMask: 4,
+      mouseButtonMask: 4
     });
-  });
+  }
+
+  init();
 </script>
 
 </html>
