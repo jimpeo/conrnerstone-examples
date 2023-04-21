@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>最简单的例子</title>
+  <title>基础工具使用</title>
   <script src="https://unpkg.com/cornerstone-core@2.6.1/dist/cornerstone.js"></script>
   <script src="https://unpkg.com/cornerstone-tools@6.0.8/dist/cornerstoneTools.js"></script>
   <script
@@ -34,11 +34,17 @@
       margin-right: 5px;
       font-size: 16px;
     }
+
+    .active {
+      background-color: rgb(220, 220, 220);
+      border: 2px solid black;
+      border-radius: 2px;
+    }
   </style>
 </head>
 
 <body>
-  <div class="container">
+  <div class="container" oncontextmenu="return false">
     <div id="enabledElement"></div>
     <div id="operation"></div>
   </div>
@@ -85,6 +91,14 @@
         label: "橡皮擦",
         props: {
           configuration: {}
+        }
+      },
+      {
+        name: "Magnify",
+        label: "放大镜",
+        props: {
+          magnifySize: 400,
+          magnificationLevel: 3
         }
       },
       {
@@ -177,18 +191,24 @@
             maxScale: 20.0
           }
         }
+      },
+      {
+        name: "Length",
+        label: "长度",
+        props: {}
       }
     ];
-    let activeToolName = "";
 
     cornerstone.enable(element);
 
     const imageId =
-      "dicomweb:https://tools.cornerstonejs.org/examples/assets/dicom/bellona/chest_lung/1.dcm";
+      "wadouri:https://182.92.128.9/file-system-online/dicom/CT/chest_lung/1/2.dcm";
+
     cornerstone.loadImage(imageId).then(function (image) {
       cornerstone.displayImage(element, image);
       toolInit();
       setToolActive(tools[0].name);
+      $(`.${tools[0].name}`).addClass("active");
     });
 
     function toolInit() {
@@ -211,18 +231,42 @@
         mouseButtonMask: mouseButtonMask || 1
       };
 
-      cornerstoneTools.setToolActive(toolName, options);
+      cornerstoneTools.setToolActiveForElement(element, toolName, options);
+    }
+
+    function setToolPassive(toolName) {
+      cornerstoneTools.setToolPassiveForElement(element, toolName);
     }
 
     function generateButtons() {
       for (let i = 0; i < tools.length; i++) {
         const button = document.createElement("button");
 
+        button.classList.add(tools[i].name);
         button.dataset.name = tools[i].name;
         button.innerText = tools[i].label;
 
         $("#operation").append(button);
       }
+    }
+
+    function getElementActiveTools() {
+      const elementTools = cornerstoneTools.store.state.tools;
+      const specialStatusTools = [
+        "Overlay",
+        "ScaleOverlay",
+        "OrientationMarkers"
+      ];
+      const activeTools = elementTools.filter(
+        (tool) =>
+          (tool.element === element &&
+            tool.mode === "active" &&
+            (tool.options["isMouseActive"] ||
+              tool.options["isMouseWheelActive"])) ||
+          (specialStatusTools.includes(tool.name) && tool.mode === "enabled")
+      );
+
+      return activeTools;
     }
 
     function addEvent() {
@@ -232,8 +276,29 @@
           const toolName = item.dataset.name;
 
           $(item).click(() => {
-            activeToolName = toolName;
-            setToolActive(toolName);
+            const activeTools = getElementActiveTools();
+
+            if (activeTools.length) {
+              const currentToolIsActive = activeTools.filter((tool) => {
+                return tool.name === toolName;
+              });
+
+              if (currentToolIsActive.length) {
+                setToolPassive(toolName);
+              } else {
+                setToolActive(toolName);
+              }
+            } else {
+              setToolActive(toolName);
+            }
+
+            $("#operation").children().removeClass("active");
+
+            const newActiveTools = getElementActiveTools();
+
+            newActiveTools.forEach((tool) => {
+              $(`.${tool.name}`).addClass("active");
+            });
           });
         });
     }

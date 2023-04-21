@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>最简单的例子</title>
+  <title>影像切换</title>
   <script src="https://unpkg.com/cornerstone-core@2.6.1/dist/cornerstone.js"></script>
   <script src="https://unpkg.com/cornerstone-tools@6.0.8/dist/cornerstoneTools.js"></script>
   <script
@@ -77,27 +77,27 @@
     const StackScrollTool = cornerstoneTools.StackScrollTool;
     const StackScrollMouseWheelTool = cornerstoneTools.StackScrollMouseWheelTool;
 
-    const imageIds = []
+    const imageIds = [];
 
     for (let i = 1; i < 36; i++) {
-      imageIds.push("dicomweb:https://tools.cornerstonejs.org/examples/assets/dicom/bellona/chest_lung/" + i + ".dcm")
+      imageIds.push("dicomweb:https://tools.cornerstonejs.org/examples/assets/dicom/bellona/chest_lung/" + i + ".dcm");
     }
 
     const stack = {
       currentImageIdIndex: 0,
       imageIds: imageIds
-    }
+    };
 
     cornerstone.loadImage(imageIds[0]).then((image) => {
-      cornerstone.displayImage(element, image)
-      cornerstoneTools.addStackStateManager(element, ['stack'])
-      cornerstoneTools.addToolState(element, 'stack', stack)
+      cornerstone.displayImage(element, image);
+      cornerstoneTools.addStackStateManager(element, ['stack']);
+      cornerstoneTools.addToolState(element, 'stack', stack);
       cornerstoneTools.addTool(StackScrollTool, {
         configuration: {
           loop: true,
           allowSkipping: true
         }
-      })
+      });
       cornerstoneTools.addTool(StackScrollMouseWheelTool, {
         configuration: {
           loop: true,
@@ -105,9 +105,9 @@
           invert: false
         }
       });
-      cornerstoneTools.setToolActive('StackScroll', { mouseButtonMask: 1 })
-      cornerstoneTools.setToolActive("StackScrollMouseWheel", { mouseButtonMask: 4 })
-    })
+      cornerstoneTools.setToolActive('StackScroll', { mouseButtonMask: 1 });
+      cornerstoneTools.setToolActive("StackScrollMouseWheel", { mouseButtonMask: 4 });
+    });
 
     const prevButton = document.getElementById("prev");
     const nextButton = document.getElementById("next");
@@ -117,12 +117,12 @@
     const scrollToIndex = cornerstoneTools.importInternal("util/scrollToIndex");
 
     prevButton.addEventListener("click", () => {
-      scroll(element, -1, true, true)
-    })
+      scroll(element, -1, true, true);
+    });
 
     nextButton.addEventListener("click", () => {
-      scroll(element, 1, true, true)
-    })
+      scroll(element, 1, true, true);
+    });
 
     jumpButton.addEventListener("click", () => {
       let newImageIdIndex = input.value;
@@ -135,7 +135,7 @@
         input.value = 34;
       }
 
-      console.log(newImageIdIndex)
+      console.log(newImageIdIndex);
 
       scrollToIndex(element, newImageIdIndex);
     })
