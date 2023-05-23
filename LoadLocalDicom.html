@@ -2,9 +2,9 @@
 <html lang="en">
 
 <head>
-  <meta charset="UTF-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>加载本地 dicom 文件</title>
   <script src="https://unpkg.com/cornerstone-core@2.6.1/dist/cornerstone.js"></script>
   <script src="https://unpkg.com/cornerstone-tools@6.0.8/dist/cornerstoneTools.js"></script>
@@ -20,16 +20,19 @@
       width: 100%;
       height: 100%;
       margin: 0;
-      padding: 0;
+      padding: 5px;
       user-select: none;
+      box-sizing: border-box;
     }
 
     .container {
+      position: relative;
       display: flex;
       justify-content: space-between;
       flex-wrap: wrap;
-      height: 60%;
-      padding-top: 60px;
+      width: 420px;
+      height: 420px;
+      margin-top: 60px;
       font-family: "Avenir", Helvetica, Arial, sans-serif;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
@@ -53,17 +56,36 @@
     button {
       font-size: 16px;
     }
+
+    .overlay {
+      display: none;
+      position: absolute;
+      color: white;
+      user-select: none;
+      pointer-events: none;
+    }
   </style>
 </head>
 
 <body>
   <div id="app">
-    <input type="file" id="fileInput" multiple accept=".dcm">
+    <input type="file" id="fileInput" multiple accept=".dcm" />
     <div class="container">
       <div class="enabledElement" oncontextmenu="return false"></div>
+      <div id="topright" class="overlay" style="top: 5px; right: 5px">
+        Render Time:
+      </div>
+      <div id="bottomright" class="overlay" style="bottom: 5px; right: 5px">
+        Zoom:
+      </div>
+      <div id="bottomleft" class="overlay" style="bottom: 5px; left: 5px">
+        WW/WC:
+      </div>
     </div>
     <div class="operation">
       <button id="selectFile">选取文件</button>
+      <button id="player">播放</button>
+      <button id="save">保存</button>
     </div>
   </div>
   <script>
@@ -103,12 +125,43 @@
         const files = e.target.files;
 
         for (const file of files) {
-          const imageId = cornerstoneWADOImageLoader.wadouri.fileManager.add(file);
+          const imageId =
+            cornerstoneWADOImageLoader.wadouri.fileManager.add(file);
 
           imageIds.push(imageId);
         }
 
         loadImage();
+      });
+
+      $("#player").click((e) => {
+        if ($(e.target).text() === "播放") {
+          cornerstoneTools.playClip(element, 10);
+          $(e.target).text("暂停");
+        } else if ($(e.target).text() === "暂停") {
+          cornerstoneTools.stopClip(element);
+          $(e.target).text("播放");
+        }
+      });
+
+      $("#save").click(() => {
+        cornerstoneTools.SaveAs(element, "jietu", "image/png");
+      });
+
+      element.addEventListener("cornerstoneimagerendered", (e) => {
+        const viewport = e.detail.viewport;
+
+        $(".overlay").show();
+        $("#topright").text(
+          "Render Time:" + e.detail.renderTimeInMs.toFixed(2) + " ms"
+        );
+        $("#bottomright").text("Zoom: " + viewport.scale.toFixed(2) + "x");
+        $("#bottomleft").text(
+          "WW/WC:" +
+          Math.round(viewport.voi.windowWidth) +
+          "/" +
+          Math.round(viewport.voi.windowCenter)
+        );
       });
 
       initTool();
@@ -121,7 +174,7 @@
 
       const stack = {
         currentImageIdIndex: 0,
-        imageIds
+        imageIds,
       };
 
       // 为启用元素添加 stack 工具状态
@@ -130,7 +183,8 @@
     }
 
     function initTool() {
-      const StackScrollMouseWheelTool = cornerstoneTools.StackScrollMouseWheelTool;
+      const StackScrollMouseWheelTool =
+        cornerstoneTools.StackScrollMouseWheelTool;
       const props = {
         configuration: {
           // 是否在序列内循环
@@ -138,12 +192,20 @@
           // 是否跳帧
           allowSkipping: true,
           // 倒转方向
-          invert: false
-        }
+          invert: false,
+        },
       };
+      const WwwcTool = cornerstoneTools.WwwcTool;
+      const ZoomTool = cornerstoneTools.ZoomTool;
 
       cornerstoneTools.addTool(StackScrollMouseWheelTool, props);
-      cornerstoneTools.setToolActive("StackScrollMouseWheel", { mouseButtonMask: 4 });
+      cornerstoneTools.addTool(WwwcTool);
+      cornerstoneTools.addTool(ZoomTool);
+      cornerstoneTools.setToolActive("StackScrollMouseWheel", {
+        mouseButtonMask: 4,
+      });
+      cornerstoneTools.setToolActive("Wwwc", { mouseButtonMask: 1 });
+      cornerstoneTools.setToolActive("Zoom", { mouseButtonMask: 2 });
     }
 
     init();
