@@ -24,7 +24,7 @@
 
     .container {
       position: relative;
-      width: 500px;
+      width: 700px;
       height: 500px;
       margin-top: 10vh;
       margin-left: 10px;
@@ -41,6 +41,7 @@
       position: absolute;
       padding: 2px 5px;
       color: greenyellow;
+      user-select: none;
     }
 
     .topleft {
@@ -57,6 +58,7 @@
     .bottomright {
       bottom: 0px;
       right: 0px;
+      text-align: right;
     }
 
     .bottomleft {
@@ -68,7 +70,7 @@
 
 <body>
   <div class="container">
-    <div class="enabledElement"></div>
+    <div class="enabledElement" oncontextmenu="return false"></div>
     <div class="overlay topleft"></div>
     <div class="overlay topright"></div>
     <div class="overlay bottomright"></div>
@@ -102,7 +104,7 @@
 
     for (let i = 1; i < 21; i++) {
       imageIds.push(
-        "wadouri:https://182.92.128.9/file-system-online/dicom/CT/chest_lung/2/" +
+        "wadouri:https://182.92.128.9/file-system-online/dicom/CT/chest/2/" +
         i +
         ".dcm"
       );
@@ -114,7 +116,7 @@
 
       const stack = {
         currentImageIdIndex: 0,
-        imageIds: imageIds,
+        imageIds: imageIds
       };
 
       cornerstoneTools.addStackStateManager(element, ["stack"]);
@@ -123,22 +125,25 @@
       const StackScrollTool = cornerstoneTools.StackScrollTool;
       const StackScrollMouseWheelTool =
         cornerstoneTools.StackScrollMouseWheelTool;
+      const ZoomTool = cornerstoneTools.ZoomTool;
 
       cornerstoneTools.addToolForElement(element, StackScrollTool);
-      cornerstoneTools.setToolActiveForElement(element, "StackScroll", {
-        mouseButtonMask: 1,
-      });
       cornerstoneTools.addToolForElement(element, StackScrollMouseWheelTool);
+      cornerstoneTools.addToolForElement(element, ZoomTool);
+      cornerstoneTools.setToolActiveForElement(element, "StackScroll", {
+        mouseButtonMask: 1
+      });
       cornerstoneTools.setToolActiveForElement(
         element,
         "StackScrollMouseWheel",
         { mouseButtonMask: 4 }
       );
+      cornerstoneTools.setToolActiveForElement(element, "Zoom", {
+        mouseButtonMask: 2
+      });
     });
 
     function getImageInfo(detail) {
-      console.log(detail);
-
       const data = detail.image.data;
       const viewport = detail.viewport;
 
@@ -169,6 +174,11 @@
         contentTime: `${data.string("x00080033").slice(0, 2)}:${data
           .string("x00080033")
           .slice(2, 4)}:${data.string("x00080033").slice(4, 6)}`,
+        sliceThickness: `${data.string("x00180050")}mm`,
+        sliceLocation: `${data.string("x00201041")}mm`,
+        KVP: `${data.string("x00180060")}kV`,
+        tubeCurrent: `${data.string("x00181151")}mA`,
+        exposureTime: `${data.string("x00181150")}ms`
       };
 
       return info;
@@ -177,8 +187,6 @@
     $(element).on("cornerstoneimagerendered", (e) => {
       const detail = e.detail;
       const imageInfo = getImageInfo(detail);
-
-      console.log(imageInfo);
 
       const topLeftContent = `
         <div>${imageInfo.institutionName}</div>
@@ -194,8 +202,10 @@
       const bottomLeftContent = `
         <div>缩放：${imageInfo.zoom}</div>
         <div>窗宽/窗位：${imageInfo.windowWidth} / ${imageInfo.windowCenter}</div>
+        <div>层厚：${imageInfo.sliceThickness} 位置：${imageInfo.sliceLocation}</div>
       `;
       const bottomRightContent = `
+        <div>${imageInfo.KVP} ${imageInfo.tubeCurrent} ${imageInfo.exposureTime}</div>
         <div>${imageInfo.contentDate} ${imageInfo.contentTime}</div>
       `;
 
@@ -203,6 +213,18 @@
       $(".topright").html(topRightContent);
       $(".bottomleft").html(bottomLeftContent);
       $(".bottomright").html(bottomRightContent);
+    });
+
+    $(element).on("mousemove", (e) => {
+      const pixelCoords = cornerstone.pageToPixel(element, e.pageX, e.pageY);
+      const pixelX = pixelCoords.x.toFixed(0);
+      const pixelY = pixelCoords.y.toFixed(0);
+      const coordsContent = `<div class="coords">pageX：${e.pageX} pageY：${e.pageY} pixelX：${pixelX} pixelY：${pixelY}</div>`;
+
+      if ($(".bottomleft").children(".coords").length) {
+        $(".bottomleft").find(".coords").remove();
+      }
+      $(".bottomleft").prepend(coordsContent);
     });
   </script>
 </body>
