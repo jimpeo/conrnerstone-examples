@@ -19,7 +19,7 @@
       width: 100%;
       height: 100%;
       margin: 0;
-      height: 0;
+      padding: 0;
     }
 
     .container {
@@ -101,6 +101,7 @@
 
     const element = $(".enabledElement")[0];
     const imageIds = [];
+    let isPer = false;
 
     for (let i = 1; i < 21; i++) {
       imageIds.push(
@@ -113,6 +114,7 @@
     cornerstone.enable(element);
     cornerstone.loadImage(imageIds[0]).then((image) => {
       cornerstone.displayImage(element, image);
+      isPer = true;
 
       const stack = {
         currentImageIdIndex: 0,
@@ -216,6 +218,8 @@
     });
 
     $(element).on("mousemove", (e) => {
+      if (!isPer) return;
+
       const pixelCoords = cornerstone.pageToPixel(element, e.pageX, e.pageY);
       const pixelX = pixelCoords.x.toFixed(0);
       const pixelY = pixelCoords.y.toFixed(0);
